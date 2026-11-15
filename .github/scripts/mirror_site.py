@@ -38,7 +38,42 @@ HEADERS = {
     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
     "Accept-Encoding": "identity",
     "Connection": "close",
+    "Referer": TARGET,
 }
+
+# 源站子资源需要带入口 URL 的 query（如 sharecode）才不 403。
+ENTRY_QUERY = parsed_target.query
+ASSET_EXT = (
+    ".js", ".mjs", ".cjs", ".css", ".html", ".htm", ".json", ".webmanifest",
+    ".map", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".ico",
+    ".woff", ".woff2", ".ttf", ".otf", ".mp3", ".ogg", ".wav", ".mp4", ".webm",
+    ".wasm", ".glb", ".gltf", ".hdr", ".ktx2", ".bin", ".txt", ".xml",
+)
+BAD_PATH_CHARS = re.compile(r"""[\s$\(\)\{\}\[\];=,!'"`<>\\#]""")
+
+
+def looks_like_asset(spec: str) -> bool:
+    """过滤 JS 代码片段 / SPA 内部路由 / 锚点，避免误抓与误改写。"""
+    if not spec or spec.startswith(("#", "data:", "blob:", "javascript:", "mailto:", "tel:")):
+        return False
+    p = urllib.parse.urlsplit(urllib.parse.urljoin("http://placeholder/", spec))
+    if BAD_PATH_CHARS.search(p.path):
+        return False
+    if spec.startswith(("http://", "https://", "//", "/", "./", "../")):
+        return True
+    return any(p.path.lower().endswith(ext) for ext in ASSET_EXT)
+
+
+def with_entry_query(url: str) -> str:
+    if not ENTRY_QUERY:
+        return url
+    p = urllib.parse.urlsplit(url)
+    if p.netloc != BASE_NETLOC:
+        return url
+    merged = dict(urllib.parse.parse_qsl(ENTRY_QUERY, keep_blank_values=True))
+    merged.update(urllib.parse.parse_qsl(p.query, keep_blank_values=True))
+    return urllib.parse.urlunsplit((p.scheme, p.netloc, p.path,
+                                    urllib.parse.urlencode(merged), p.fragment))
 
 parsed_target = urllib.parse.urlparse(TARGET)
 BASE_NETLOC = parsed_target.netloc
@@ -105,7 +140,7 @@ def ref_for(target_local: str, current_local: str) -> str:
 def enqueue(spec: str, current_url: str, current_local: str, depth: int, kind_hint=None):
     """返回 (改写后的 spec, 目标 local path)；无法本地化则返回 (原 spec, None)。"""
     spec = (spec or "").strip()
-    if not spec or spec.startswith(("#", "data:", "blob:", "javascript:", "mailto:", "tel:")):
+    if not looks_like_asset(spec):
         return spec, None
     absolute = urllib.parse.urljoin(current_url, spec)
     if absolute.startswith("//"):
@@ -121,6 +156,7 @@ def enqueue(spec: str, current_url: str, current_local: str, depth: int, kind_hi
 
 
 def fetch(url: str) -> bytes:
+    url = with_entry_query(url)
     req = urllib.request.Request(url, headers=HEADERS)
     for attempt in range(3):
         try:
@@ -129,6 +165,14 @@ def fetch(url: str) -> bytes:
                 if len(data) > MAX_BYTES:
                     raise RuntimeError(f"文件超过 {MAX_BYTES} 字节: {url}")
                 return data
+        except urllib.error.HTTPError as e:
+            if e.code == 403 and attempt < 2:
+                # 少数资源还会校验 Referer / 二次握手，重试一次
+                import time
+                time.sleep(1.0)
+                req = urllib.request.Request(url, headers={**HEADERS, "Referer": url})
+                continue
+            raise
         except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
             if attempt == 2:
                 raise
