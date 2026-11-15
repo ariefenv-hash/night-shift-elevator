@@ -1,0 +1,23 @@
+{
+  "target": "https://night-shift-elevator.app.workbuddy.host/game/index.html?sharecode=OQXTTDPJSB",
+  "entry": "https://night-shift-elevator.app.workbuddy.host/game/index.html?sharecode=OQXTTDPJSB",
+  "base_dir": "/game/",
+  "file_count": 2,
+  "total_bytes": 1030863,
+  "files": {
+    "index.html": {
+      "source": "https://night-shift-elevator.app.workbuddy.host/game/index.html?sharecode=OQXTTDPJSB",
+      "bytes": 422782,
+      "sha256": "9054fb9bfa4efccec8796eead7b1319186c3adb47460d58616b1ef533f29d60b",
+      "kind": "html"
+    },
+    "libs/three.min.js": {
+      "source": "https://night-shift-elevator.app.workbuddy.host/game/libs/three.min.js",
+      "bytes": 608081,
+      "sha256": "8a5f7249903b54d30f79f708699d2fed2d6a1d0741a4cd41377d1f01bb5a2271",
+      "kind": "js"
+    }
+  },
+  "external": [],
+  "warnings": []
+}
