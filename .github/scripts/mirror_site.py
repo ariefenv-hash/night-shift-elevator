@@ -42,7 +42,7 @@ HEADERS = {
 }
 
 # 源站子资源需要带入口 URL 的 query（如 sharecode）才不 403。
-ENTRY_QUERY = parsed_target.query
+ENTRY_QUERY = urllib.parse.urlsplit(TARGET).query
 ASSET_EXT = (
     ".js", ".mjs", ".cjs", ".css", ".html", ".htm", ".json", ".webmanifest",
     ".map", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".ico",
