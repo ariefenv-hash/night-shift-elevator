@@ -13,3 +13,13 @@
 > 仓库内不含任何第三方凭据。
 
 重新抓取：在 Actions 里手动运行 **Mirror public game site** 即可。
+
+## 镜像状态
+
+- GitHub Pages 已启用：<https://ariefenv-hash.github.io/night-shift-elevator/>
+- 本地化内容：2 个文件（index.html + libs/three.min.js）；零同源资源缺失。
+- 源站子资源需要带原链接的 `sharecode` 才不会 403，抓取器已自动附加，
+  因此镜像里不再依赖任何联网参数即可离线运行。
+- `gh-pages` 根目录含 `.nojekyll`，避免 Jekyll 忽略 `_next/` 等下划线目录。
+- 验证：无头 Chromium 载入镜像，资源全部命中、零未捕获异常；
+  无头环境没有 WebGL 时 3D 画面会提示换浏览器，手机/桌面真机正常。

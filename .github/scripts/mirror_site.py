@@ -310,6 +310,10 @@ while queue:
         warnings.append(f"达到文件上限 {MAX_FILES}，停止递归")
         break
 
+# GitHub Pages 默认跑 Jekyll，会忽略 _next/ 等下划线开头的目录。
+with open(os.path.join(OUT, ".nojekyll"), "wb") as f:
+    f.write(b"")
+
 manifest = {
     "target": TARGET,
     "entry": entry,
