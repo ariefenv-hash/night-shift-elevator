@@ -1,0 +1,42 @@
+name: Mirror public game site
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mirror-main
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download full static snapshot
+        env:
+          TARGET_URL: 'https://night-shift-elevator.app.workbuddy.host/game/index.html?sharecode=OQXTTDPJSB'
+        run: python3 .github/scripts/mirror_site.py
+
+      - name: Publish gh-pages branch
+        run: |
+          set -e
+          git config user.name "mirror-bot"
+          git config user.email "mirror-bot@users.noreply.github.com"
+          git checkout --orphan gh-pages
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name 'site' -exec rm -rf {} +
+          cp -a site/. .
+          rm -rf site
+          git add -A
+          git commit -m "mirror: static snapshot" || echo "no changes"
+          git push -f origin gh-pages:refs/heads/gh-pages
